@@ -21,26 +21,10 @@ california_housing_dataframe = california_housing_dataframe.reindex(
     np.random.permutation(california_housing_dataframe.index))
 california_housing_dataframe["median_house_value"] /= 1000.0
 
-#
-# # Define the input feature: total_rooms.
-# my_feature = california_housing_dataframe[["total_rooms"]]
-#
-# # Configure a numeric feature column for total_rooms.
-# feature_columns = [tf.feature_column.numeric_column("total_rooms")]
-#
-# # Define the label.
-# targets = california_housing_dataframe["median_house_value"]
-#
-# # Use gradient descent as the optimizer for training the model.
-# my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0000001)
-# my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
-#
-# # Configure the linear regression model with our feature columns and optimizer.
-# # Set a learning rate of 0.0000001 for Gradient Descent.
-# linear_regressor = tf.estimator.LinearRegressor(
-#     feature_columns=feature_columns,
-#     optimizer=my_optimizer
-# )
+
+print(california_housing_dataframe)
+
+print(california_housing_dataframe.describe())
 
 
 def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
@@ -71,10 +55,33 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     features, labels = ds.make_one_shot_iterator().get_next()
     return features, labels
 
+
+#
+# # Define the input feature: total_rooms.
+# my_feature = california_housing_dataframe[["total_rooms"]]
+#
+# # Configure a numeric feature column for total_rooms.
+# feature_columns = [tf.feature_column.numeric_column("total_rooms")]
+#
+# # Define the label.
+# targets = california_housing_dataframe["median_house_value"]
+#
+# # Use gradient descent as the optimizer for training the model.
+# my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0000001)
+# my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
+#
+# # Configure the linear regression model with our feature columns and optimizer.
+# # Set a learning rate of 0.0000001 for Gradient Descent.
+# linear_regressor = tf.estimator.LinearRegressor(
+#     feature_columns=feature_columns,
+#     optimizer=my_optimizer
+# )
+#
+#
 #
 # _ = linear_regressor.train(
 #     input_fn = lambda:my_input_fn(my_feature, targets),
-#     steps=100
+#     steps=1000
 # )
 #
 # # Create an input function for predictions.
@@ -245,12 +252,10 @@ def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
 train_model(
     learning_rate=0.0002,
     steps=100,
-    batch_size=10
+    batch_size=100
 )
 
-# print(california_housing_dataframe)
-#
-# print(california_housing_dataframe.describe())
+
 
 
 
