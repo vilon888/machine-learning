@@ -22,7 +22,6 @@ california_housing_dataframe = california_housing_dataframe.reindex(
 california_housing_dataframe["median_house_value"] /= 1000.0
 
 
-
 def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     """Trains a linear regression model of one feature.
 
@@ -95,7 +94,9 @@ def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
     plt.xlabel(my_feature)
     sample = california_housing_dataframe.sample(n=300)
     plt.scatter(sample[my_feature], sample[my_label])
+
     colors = [cm.coolwarm(x) for x in np.linspace(-1, 1, periods)]
+
 
     # Train the model, but do so inside a loop so that we can periodically assess
     # loss metrics.
@@ -147,6 +148,7 @@ def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
     calibration_data = pd.DataFrame()
     calibration_data["predictions"] = pd.Series(predictions)
     calibration_data["targets"] = pd.Series(targets)
+
     # display.display(calibration_data.describe())
     # Just use print for command line
     print(calibration_data.describe())
@@ -160,7 +162,7 @@ california_housing_dataframe["rooms_per_person"] = \
     california_housing_dataframe['total_rooms'] / california_housing_dataframe['population']
 
 calibration_data = train_model(
-    learning_rate=0.00005,
+    learning_rate=0.05,
     steps=500,
     batch_size=5,
     input_feature="rooms_per_person"
