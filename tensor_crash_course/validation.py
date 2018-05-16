@@ -17,8 +17,8 @@ pd.options.display.float_format = '{:.1f}'.format
 california_housing_dataframe = pd.read_csv(
     "data/california_housing_train.csv", sep=",")
 
-# california_housing_dataframe = california_housing_dataframe.reindex(
-#     np.random.permutation(california_housing_dataframe.index))
+california_housing_dataframe = california_housing_dataframe.reindex(
+    np.random.permutation(california_housing_dataframe.index))
 
 
 def preprocess_features(california_housing_dataframe):
@@ -40,13 +40,13 @@ def preprocess_features(california_housing_dataframe):
          "population",
          "households",
          "median_income"]]
-    processed_features = selected_features.copy()
+    # processed_features = selected_features.copy()
 
     # Create a synthetic feature.
-    processed_features["rooms_per_person"] = (
+    selected_features["rooms_per_person"] = (
         california_housing_dataframe["total_rooms"] /
         california_housing_dataframe["population"])
-    return processed_features
+    return selected_features
 
 
 def preprocess_targets(california_housing_dataframe):
@@ -160,9 +160,11 @@ def train_model(
         training_examples,
         training_targets["median_house_value"],
         num_epochs=1,
+        batch_size=batch_size,
         shuffle=False)
     predict_validation_input_fn = lambda: my_input_fn(
         validation_examples, validation_targets["median_house_value"],
+        batch_size=batch_size,
         num_epochs=1,
         shuffle=False)
 
@@ -213,27 +215,27 @@ def train_model(
 
 
 training_examples = preprocess_features(california_housing_dataframe.head(12000))
-print('training_examples.describe()')
-print(training_examples.describe())
+# print('training_examples.describe()')
+# print(training_examples.describe())
 
 training_targets = preprocess_targets(california_housing_dataframe.head(12000))
-print('training_targets.describe()')
-print(training_targets.describe())
+# print('training_targets.describe()')
+# print(training_targets.describe())
 
 validation_examples = preprocess_features(california_housing_dataframe.tail(5000))
-print('validation_examples.describe()')
-print(validation_examples.describe())
+# print('validation_examples.describe()')
+# print(validation_examples.describe())
 
 validation_targets = preprocess_targets(california_housing_dataframe.tail(5000))
-print('validation_targets.describe()')
-print(validation_targets.describe())
+# print('validation_targets.describe()')
+# print(validation_targets.describe())
 
 
 linear_regressor = train_model(
     # TWEAK THESE VALUES TO SEE HOW MUCH YOU CAN IMPROVE THE RMSE
-    learning_rate=0.0001,
-    steps=100,
-    batch_size=1,
+    learning_rate=0.0003,
+    steps=500,
+    batch_size=500,
     training_examples=training_examples,
     training_targets=training_targets,
     validation_examples=validation_examples,
@@ -245,18 +247,19 @@ california_housing_test_data = pd.read_csv("data/california_housing_test.csv", s
 
 testing_examples = preprocess_features(california_housing_test_data)
 testing_targets = preprocess_targets(california_housing_test_data)
-print("testing_examples.describe():")
-print(testing_examples.describe())
+# print("testing_examples.describe():")
+# print(testing_examples.describe())
+#
+# print("testing_targets.describe():")
+# print(testing_targets.describe())
 
-print("testing_targets.describe():")
-print(testing_targets.describe())
-
-predict_testing_input_fn = lambda: my_input_fn(
+testing_input_fn = lambda: my_input_fn(
     testing_examples, testing_targets["median_house_value"],
     num_epochs=1,
+    batch_size=10,
     shuffle=False)
 
-testing_predictions = linear_regressor.predict(input_fn=predict_testing_input_fn)
+testing_predictions = linear_regressor.predict(input_fn=testing_input_fn)
 testing_predictions = np.array([item['predictions'][0] for item in testing_predictions])
 
 root_mean_squared_error = math.sqrt(
