@@ -144,7 +144,8 @@ def train_model(
     my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
     linear_regressor = tf.estimator.LinearRegressor(
         feature_columns=construct_feature_columns(training_examples),
-        optimizer=my_optimizer
+        optimizer=my_optimizer,
+        model_dir='/tmp/validation'
     )
 
     # 1. Create input functions.
@@ -235,7 +236,7 @@ linear_regressor = train_model(
     # TWEAK THESE VALUES TO SEE HOW MUCH YOU CAN IMPROVE THE RMSE
     learning_rate=0.0003,
     steps=500,
-    batch_size=500,
+    batch_size=50,
     training_examples=training_examples,
     training_targets=training_targets,
     validation_examples=validation_examples,
@@ -256,7 +257,7 @@ testing_targets = preprocess_targets(california_housing_test_data)
 testing_input_fn = lambda: my_input_fn(
     testing_examples, testing_targets["median_house_value"],
     num_epochs=1,
-    batch_size=10,
+    batch_size=50,
     shuffle=False)
 
 testing_predictions = linear_regressor.predict(input_fn=testing_input_fn)
