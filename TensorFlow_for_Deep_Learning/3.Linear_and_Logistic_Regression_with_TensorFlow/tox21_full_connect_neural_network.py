@@ -28,16 +28,19 @@ n_hidden = 50
 learning_rate = .001
 n_epochs = 10
 batch_size = 100
+dropout_prob = 0.8
 
 with tf.name_scope('placeholder'):
     x = tf.placeholder(tf.float32, (None, d))
     y = tf.placeholder(tf.float32, (None, ))
+    keep_prob = tf.placeholder(tf.float32)
 
 with tf.name_scope('hidden-layer'):
     W = tf.Variable(tf.random_normal((d, n_hidden)))
     b = tf.Variable(tf.random_normal((n_hidden, )))
     x_hidden = tf.nn.relu(tf.matmul(x, W) + b)
-
+    # add dropout
+    x_hidden = tf.nn.dropout(x_hidden, keep_prob)
 
 with tf.name_scope('output'):
     W = tf.Variable(tf.random_normal((n_hidden, 1)))
@@ -77,7 +80,7 @@ with tf.Session() as sess:
             batch_X = train_X[pos:pos + batch_size]
             batch_Y = train_y[pos:pos + batch_size]
             _, summary, loss = sess.run([train_op, merged, l],
-                                        feed_dict= {x: batch_X, y: batch_Y})
+                                        feed_dict= {x: batch_X, y: batch_Y, keep_prob: dropout_prob})
             print("epoch %d, step %d, loss: %f" % (epoch, step, loss))
             train_writer.add_summary(summary, step)
 
