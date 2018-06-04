@@ -87,13 +87,16 @@ with tf.Session() as sess:
             step += 1
             pos += batch_size
 
-    #make prediction
-    valid_y_pred = sess.run(y_pred, feed_dict={x: valid_X})
+    # make prediction, don't need dropout in prediction
+    train_y_pred = sess.run(y_pred, feed_dict={x: train_X, keep_prob: 1.0})
+    valid_y_pred = sess.run(y_pred, feed_dict={x: valid_X, keep_prob: 1.0})
+    test_y_pred = sess.run(y_pred, feed_dict={x: test_X, keep_prob: 1.0})
 
-score = accuracy_score(valid_y, valid_y_pred)
-print("Unweighted Classification Accuracy: %f" % score)
-
-weighted_score = accuracy_score(valid_y, valid_y_pred, sample_weight=valid_w)
-print("Weighted Classification Accuracy: %f" % weighted_score)
+train_weighted_score = accuracy_score(train_y, train_y_pred, sample_weight=train_w)
+print("Train Weighted Classification Accuracy: %f" % train_weighted_score)
+valid_weighted_score = accuracy_score(valid_y, valid_y_pred, sample_weight=valid_w)
+print("Valid Weighted Classification Accuracy: %f" % valid_weighted_score)
+test_weighted_score = accuracy_score(test_y, test_y_pred, sample_weight=test_w)
+print("Test Weighted Classification Accuracy: %f" % test_weighted_score)
 
 
