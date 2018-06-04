@@ -67,7 +67,7 @@ with tf.name_scope('summaries'):
     merged = tf.summary.merge_all()
 
 
-train_writer = tf.summary.FileWriter('/tmp/tf_deep/ch3/tox21_full_connect', tf.get_default_graph())
+train_writer = tf.summary.FileWriter('/tmp/tf_deep/ch4/tox21_full_connect', tf.get_default_graph())
 
 N = train_X.shape[0]
 
