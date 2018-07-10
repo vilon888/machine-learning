@@ -4,6 +4,7 @@ import h5py
 import scipy
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import skimage.transform
 from tensorflow.python.framework import ops
 from tf_utils import load_dataset, random_mini_batches, convert_to_one_hot, predict
 
@@ -367,7 +368,7 @@ parameters = model(X_train, Y_train, X_test, Y_test)
 
 fname = "images/" + "thumbs_up.jpg"
 image = np.array(plt.imread(fname))
-my_image = scipy.misc.imresize(image, size=(64, 64)).reshape((1, 64*64*3)).T
+my_image = skimage.transform.resize(image, (64,64), mode='constant').reshape((1, 64*64*3)).T
 my_image_prediction = predict(my_image, parameters)
 
 plt.imshow(image)
