@@ -8,6 +8,7 @@ from PIL import Image
 from scipy import ndimage
 import tensorflow as tf
 from tensorflow.python.framework import ops
+import skimage.transform
 from cnn_utils import *
 
 np.random.seed(1)
@@ -194,7 +195,7 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.009,
 
 
 start = time.time()
-learning_rate = 0.003
+learning_rate = 0.005
 _, _, parameters, costs = model(X_train, Y_train, X_test, Y_test, learning_rate=learning_rate)
 elapsed = time.time() - start
 print('Train model cost: %d seconds' % elapsed)
@@ -208,22 +209,12 @@ print('Train model cost: %d seconds' % elapsed)
 
 # make prediction
 
-fname = "images/" + "gesture3.jpg"
+fname = "images/test_four.jpg"
 image = np.array(plt.imread(fname))
-my_image = scipy.misc.imresize(image, size=(64, 64)).reshape((1, 64, 64, 3))
-my_image_prediction = predict(my_image, parameters)
+my_image = skimage.transform.resize(image, (64,64), mode='constant')
+plt.imshow(my_image)
 
-# plt.imshow(image)
-# plt.show()
-print("Your algorithm predicts: y = " + str(np.squeeze(my_image_prediction)))
-
-fname = "images/" + "gesture1.jpg"
-image = np.array(plt.imread(fname))
-my_image = scipy.misc.imresize(image, size=(64, 64)).reshape((1, 64, 64, 3))
-my_image_prediction = predict(my_image, parameters)
-
-# plt.imshow(image)
-# plt.show()
+my_image_prediction = predict(my_image.reshape((1, 64, 64, 3)), parameters)
 print("Your algorithm predicts: y = " + str(np.squeeze(my_image_prediction)))
 
 

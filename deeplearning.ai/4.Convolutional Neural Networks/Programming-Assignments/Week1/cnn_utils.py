@@ -99,13 +99,12 @@ def forward_propagation_for_predict(X, parameters):
 
     P2 = tf.contrib.layers.flatten(P2)
 
-    Z3 = tf.contrib.layers.fully_connected(P2, 6, activation_fn=None)
+    Z3 = tf.contrib.layers.fully_connected(P2, 6, activation_fn=tf.nn.softmax)
 
     return Z3
 
 
 def predict(X, parameters):
-    
     W1 = tf.convert_to_tensor(parameters["W1"])
     W2 = tf.convert_to_tensor(parameters["W2"])
 
@@ -116,12 +115,11 @@ def predict(X, parameters):
     
     z3 = forward_propagation_for_predict(x, params)
     p = tf.argmax(z3, axis=1)
-    print(z3.shape)
-    print(p.shape)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     prediction = sess.run(p, feed_dict={x: X})
-    print(sess.run(z3, feed_dict={x: X}))
+    print('Z3 is : {}\n'.format(sess.run(z3, feed_dict={x: X})))
+    sess.close()
         
     return prediction
