@@ -171,9 +171,9 @@ def conv_backward(dZ, cache):
         for h in range(n_H):
             for w in range(n_W):
                 for c in range(n_C):
-                    v_start = h
+                    v_start = h * stride
                     v_end = v_start + f
-                    h_start = w
+                    h_start = w * stride
                     h_end = h_start + f
 
                     a_slice = a_pre_pad[v_start:v_end, h_start:h_end, :]
@@ -246,9 +246,9 @@ def pool_backward(dA, cache, mode="max"):
         for h in range(n_H):
             for w in range(n_W):
                 for c in range(n_C):
-                    v_start = h
+                    v_start = h * stride
                     v_end = v_start + f
-                    h_start = w
+                    h_start = w * stride
                     h_end = h_start + f
 
                     if mode == 'max':
