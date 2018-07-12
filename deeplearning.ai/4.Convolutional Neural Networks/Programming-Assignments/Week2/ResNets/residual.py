@@ -13,7 +13,7 @@ from keras.utils import plot_model
 from resnets_utils import *
 from keras.initializers import glorot_uniform
 import scipy.misc
-import  matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import keras.backend as K
 K.set_image_data_format('channels_last')
@@ -225,7 +225,7 @@ preds = model.evaluate(X_test, Y_test)
 print ("Loss = " + str(preds[0]))
 print ("Test Accuracy = " + str(preds[1]))
 
-# model = load_model('/Users/vilon888/Downloads/ResNet50.h5')
+# model = load_model('model/ResNet50.h5')
 # preds = model.evaluate(X_test, Y_test)
 # print('predicting use model from network........\n')
 # print ("Loss = " + str(preds[0]))
