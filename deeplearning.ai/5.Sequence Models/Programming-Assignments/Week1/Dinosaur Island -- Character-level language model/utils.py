@@ -47,7 +47,7 @@ def rnn_step_forward(parameters, a_prev, x):
     Waa, Wax, Wya, by, b = parameters['Waa'], parameters['Wax'], parameters['Wya'], parameters['by'], parameters['b']
     a_next = np.tanh(np.dot(Wax, x) + np.dot(Waa, a_prev) + b) # hidden state
     p_t = softmax(np.dot(Wya, a_next) + by) # unnormalized log probabilities for next chars # probabilities for next chars 
-    print('shape of pt is: {}, content is:{}'.format(p_t.shape, p_t.ravel()))
+    # print('shape of pt is: {}, content is:{}'.format(p_t.shape, p_t.ravel()))
     return a_next, p_t
 
 def rnn_step_backward(dy, gradients, parameters, x, a, a_prev):
@@ -93,8 +93,11 @@ def rnn_forward(X, Y, a0, parameters, vocab_size = 27):
         a[t], y_hat[t] = rnn_step_forward(parameters, a[t-1], x[t])
         
         # Update the loss by substracting the cross-entropy term of this time-step from it.
-        loss -= np.log(y_hat[t][Y[t],0])
-        
+        loss -= np.log(y_hat[t][Y[t],0]) # Y[t] with one-hot inner dot with y_hat[t]
+
+        # print('y_hat<{}> is: {} with shape {} \n'.format(t, y_hat[t], y_hat[t].shape))
+        # print('Y<{}> is: {} \n'.format(t, Y[t]))
+
     cache = (y_hat, a, x)
         
     return loss, cache
