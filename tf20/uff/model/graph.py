@@ -73,6 +73,10 @@ class Graph(object):
         fields = _create_fields({"shape": shape, "dtype": dtype}, fields)
         return self._add_node("Input", name, fields=fields, extra_fields=extra_fields)
 
+    def identity(self, prev_node, name=None, fields=None, extra_fields=None):
+        name = self._use_or_generate_name("Identity", name)
+        return self._add_node("Identity", name, inputs=[prev_node], fields=fields, extra_fields=extra_fields)
+
     def const(self, arr, name=None, fields=None, extra_fields=None):
         name = self._use_or_generate_name("Const", name)
         if not isinstance(arr, str):
@@ -171,6 +175,24 @@ class Graph(object):
         name = self._use_or_generate_name("Unary", name)
         fields = _create_fields({"func": func}, fields)
         return self._add_node("Unary", name, inputs=[prev_node],
+                              fields=fields, extra_fields=extra_fields)
+
+    def expand_dims(self, prev_node, axis, name=None, fields=None, extra_fields=None):
+        name = self._use_or_generate_name("ExpandDims", name)
+        fields = _create_fields({"axis": axis}, fields)
+        return self._add_node("ExpandDims", name, inputs=[prev_node],
+                              fields=fields, extra_fields=extra_fields)
+
+    def argmax(self, prev_node, axis, name=None, fields=None, extra_fields=None):
+        name = self._use_or_generate_name("ArgMax", name)
+        fields = _create_fields({"axis": axis}, fields)
+        return self._add_node("ArgMax", name, inputs=[prev_node],
+                              fields=fields, extra_fields=extra_fields)
+
+    def argmin(self, prev_node, axis, name=None, fields=None, extra_fields=None):
+        name = self._use_or_generate_name("ArgMin", name)
+        fields = _create_fields({"axis": axis}, fields)
+        return self._add_node("ArgMin", name, inputs=[prev_node],
                               fields=fields, extra_fields=extra_fields)
 
     def reshape(self, prev_node, shape, name=None, fields=None, extra_fields=None):

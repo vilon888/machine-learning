@@ -1,4 +1,4 @@
-from graphsurgeon import DynamicGraph
+import graphsurgeon as gs
 
 """
 These are more advanced, and more specific functions that don't necessarily fit
@@ -26,15 +26,16 @@ def process_dilated_conv(dynamic_graph):
     for chain in node_chains:
         # The first node is SpaceToBatchND
         forward_inputs_nodes.append(chain[0])
-        # Only remove the padding input. Successive nodes might be named
-        # paddings_1 etc., so don't check only for exact matches.
-        remove_nodes.extend(dynamic_graph.find_node_inputs_by_name(chain[0], "paddings.*"))
         # The last node is BatchToSpaceND
         forward_inputs_nodes.append(chain[-1])
-        # Remove the block_shape input and crops inputs.
-        remove_nodes.extend(dynamic_graph.find_node_inputs_by_name(chain[-1], ["block_shape.*", "crops.*"]))
+        # Reattach the crops node to the Conv instead.
+        crops = dynamic_graph.find_node_inputs_by_name(chain[-1], "crops")[0]
+        chain[-1].input.remove(crops.name)
+        chain[0].input.append(crops.name)
+        # Remove all inputs from the BatchToSpaceND except the convolution.
+        remove_nodes.extend([dynamic_graph.node_map[inp] for inp in chain[-1].input if dynamic_graph.node_map[inp].op != "Conv2D"])
     # Now remove the const nodes.
-    dynamic_graph.remove(remove_nodes)
+    dynamic_graph.remove(remove_nodes, remove_exclusive_dependencies=True)
     # Forward inputs the SpaceToBatchND and BatchToSpaceND nodes.
     dynamic_graph.forward_inputs(forward_inputs_nodes)
 

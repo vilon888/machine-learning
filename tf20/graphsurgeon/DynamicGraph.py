@@ -1,6 +1,7 @@
 import copy
 from graphsurgeon import StaticGraph
 from graphsurgeon._utils import _get_node_names, _handle_single_nodes
+#from tensorflow import GraphDef, NodeDef
 # from tensorflow import GraphDef, NodeDef
 from tensorflow.core.framework.node_def_pb2 import NodeDef
 from tensorflow.core.framework.graph_pb2 import GraphDef
@@ -53,7 +54,7 @@ class DynamicGraph(StaticGraph):
         nodes = self._internal_graphdef.node
 
         # FIXME: Handle control inputs properly when bridging. Figure out the duplicate input situation.
-        def should_forward_inputs_node(node):
+        def should_forward_inputs(node):
             # Forward inputs if the node is in the list...
             is_in_forward_inputs_names = node.name in forward_inputs_names
             # ...unless it has control edge inputs
@@ -68,7 +69,7 @@ class DynamicGraph(StaticGraph):
                 shallow_input_replacements = OrderedDict()
                 # Traverse the graph once to get a shallow mapping of input -> replacements
                 for node in nodes:
-                    if should_forward_inputs_node(node):
+                    if should_forward_inputs(node):
                         shallow_input_replacements[node.name] = node.input
                 return shallow_input_replacements
 
@@ -119,8 +120,8 @@ class DynamicGraph(StaticGraph):
         # Update the graph.
         index = 0
         while index < len(nodes):
-            if should_forward_inputs_node(nodes[index]):
-                # If this node should be forward_inputsd, remove it.
+            if should_forward_inputs(nodes[index]):
+                # If this node should be forwarded, remove it.
                 del nodes[index]
                 index -= 1
             else:

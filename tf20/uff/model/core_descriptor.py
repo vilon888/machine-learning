@@ -9,6 +9,9 @@ CORE_DESCRIPTOR = Descriptor(None, 0x1, False, {
         .field(FieldType.dtype, "dtype", uff_pb.DT_FLOAT32)
         .field(FieldType.i_list, "shape"),
 
+    "Identity":
+        DescriptorOp().inputs_size(1),
+
     "Const":
         DescriptorOp().inputs_size(0)
         .field(FieldType.blob, "values").ref_field("values")  # force reference checking
@@ -57,7 +60,19 @@ CORE_DESCRIPTOR = Descriptor(None, 0x1, False, {
 
     "Unary":
         DescriptorOp().inputs_size(1)
-        .field_enum("func", ["neg", "exp", "log", "abs", "sqrt", "rsqrt", "square"]),
+        .field_enum("func", ["neg", "exp", "log", "abs", "sqrt", "rsqrt", "square", "sin", "cos", "tan", "sinh", "cosh", "asin", "acos", "atan", "asinh", "acosh", "atanh", "ceil", "floor"]),
+
+    "ExpandDims":
+        DescriptorOp().inputs_size(1)
+        .field(FieldType.i, "axis"),
+
+    "ArgMax":
+        DescriptorOp().inputs_size(1)
+        .field(FieldType.i, "axis"),
+
+    "ArgMin":
+        DescriptorOp().inputs_size(1)
+        .field(FieldType.i, "axis"),
 
     "Reshape":
         DescriptorOp().inputs_size(2),  # input, shape
@@ -101,7 +116,7 @@ CORE_DESCRIPTOR = Descriptor(None, 0x1, False, {
     # we will keep the helper function in the Graph for those though
     "Activation":
         DescriptorOp().inputs_size(1)
-        .field_enum("func", ["relu", "relu6", "sigmoid", "tanh"]),
+        .field_enum("func", ["relu", "relu6", "sigmoid", "tanh", "elu", "selu", "softsign", "softplus"]),
 
     "Softmax":
         DescriptorOp().inputs_size(1)

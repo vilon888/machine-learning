@@ -11,3 +11,4 @@ from graphsurgeon.DynamicGraph import *
 from graphsurgeon.node_manipulation import *
 from graphsurgeon.recovery import *
 import graphsurgeon.extras
+__version__ = "0.4.0"

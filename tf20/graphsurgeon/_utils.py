@@ -1,5 +1,5 @@
 import re
-# from tensorflow import NodeDef
+#from tensorflow import NodeDef
 from tensorflow.core.framework.node_def_pb2 import NodeDef
 
 def _string_matches_regex(match_string, regex):

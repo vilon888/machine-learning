@@ -15,7 +15,7 @@ from .converter import TensorFlowToUFFConverter as tf2uff, _debug_print
 try:
     from tensorflow.python.platform import gfile
     import tensorflow as tf
-    # from tensorflow import GraphDef
+    #from tensorflo import GraphDef
     from tensorflow.core.framework.graph_pb2 import GraphDef
 except ImportError as err:
     raise ImportError("""ERROR: Failed to import module ({})
@@ -33,9 +33,28 @@ def _replace_ext(path, ext):
 
 def from_tensorflow(graphdef, output_nodes=[], preprocessor=None, **kwargs):
     """
-    Helper function for calling the conversion
-    from TensorFlow
+    Converts a TensorFlow GraphDef to a UFF model.
+
+    Args:
+        graphdef (tensorflow.GraphDef): The TensorFlow graph to convert.
+        output_nodes (list(str)): The names of the outputs of the graph. If not provided, graphsurgeon is used to automatically deduce output nodes.
+        output_filename (str): The UFF file to write.
+        preprocessor (str): The path to a preprocessing script that will be executed before the converter. This script should define a ``preprocess`` function which accepts a graphsurgeon DynamicGraph and modifies it in place.
+        write_preprocessed (bool): If set to True, the converter will write out the preprocessed graph as well as a TensorBoard visualization. Must be used in conjunction with output_filename.
+        text (bool): If set to True, the converter will also write out a human readable UFF file. Must be used in conjunction with output_filename.
+        quiet (bool): If set to True, suppresses informational messages. Errors may still be printed.
+        list_nodes (bool): If set to True, the converter displays a list of all nodes present in the graph.
+        debug_mode (bool): If set to True, the converter prints verbose debug messages.
+        return_graph_info (bool): If set to True, this function returns the graph input and output nodes in addition to the serialized UFF graph.
+
+    Returns:
+        serialized UFF MetaGraph (str)
+
+        OR, if return_graph_info is set to True,
+
+        serialized UFF MetaGraph (str), graph inputs (list(tensorflow.NodeDef)), graph outputs (list(tensorflow.NodeDef))
     """
+
     quiet = False
     input_node = []
     text = False
@@ -62,6 +81,12 @@ def from_tensorflow(graphdef, output_nodes=[], preprocessor=None, **kwargs):
         elif k == "return_graph_info":
             return_graph_info = v
 
+    tf_supported_ver = "1.12.0"
+    if not quiet:
+        print("NOTE: UFF has been tested with TensorFlow " + str(tf_supported_ver) + ". Other versions are not guaranteed to work")
+    if tf.__version__ != tf_supported_ver:
+        print("WARNING: The version of TensorFlow installed on this system is not guaranteed to work with UFF.")
+
     try:
         import graphsurgeon as gs
     except ImportError as err:
@@ -71,11 +96,9 @@ For installation instructions, see:
 https://docs.nvidia.com/deeplearning/sdk/tensorrt-api/#python and click on the 'TensoRT Python API' link""".format(err))
     # Create a dynamic graph so we can adjust it as needed.
     dynamic_graph = gs.DynamicGraph(graphdef)
-    # Always remove asserts/identity ops.
+    # Always remove assert ops.
     assert_nodes = dynamic_graph.find_nodes_by_op("Assert")
     dynamic_graph.remove(assert_nodes, remove_exclusive_dependencies=True)
-    identity_nodes = dynamic_graph.find_nodes_by_op("Identity")
-    dynamic_graph.forward_inputs(identity_nodes)
     # Now, run the preprocessor, if provided.
     if preprocessor:
         import importlib, sys
@@ -93,7 +116,7 @@ https://docs.nvidia.com/deeplearning/sdk/tensorrt-api/#python and click on the '
     # Get the modified graphdef back.
     graphdef = dynamic_graph.as_graph_def()
 
-    if write_preprocessed:
+    if write_preprocessed and output_filename:
         preprocessed_output_name = os.path.splitext(output_filename)[0] + "_preprocessed"
         dynamic_graph.write(preprocessed_output_name + ".pb")
         dynamic_graph.write_tensorboard(preprocessed_output_name)
@@ -103,8 +126,9 @@ https://docs.nvidia.com/deeplearning/sdk/tensorrt-api/#python and click on the '
 
     if not quiet:
         print("UFF Version " + uff.__version__)
-        if debug_mode:
-            _debug_print("Debug Mode is ENABLED")
+
+    if debug_mode:
+        _debug_print("Debug Mode is ENABLED")
 
     if not input_node:
         if not quiet:
@@ -182,7 +206,29 @@ https://docs.nvidia.com/deeplearning/sdk/tensorrt-api/#python and click on the '
         return uff_metagraph_proto.SerializeToString()
 
 def from_tensorflow_frozen_model(frozen_file, output_nodes=[], preprocessor=None, **kwargs):
+    """
+    Converts a TensorFlow frozen graph to a UFF model.
+
+    Args:
+        frozen_file (str): The path to the frozen TensorFlow graph to convert.
+        output_nodes (list(str)): The names of the outputs of the graph. If not provided, graphsurgeon is used to automatically deduce output nodes.
+        output_filename (str): The UFF file to write.
+        preprocessor (str): The path to a preprocessing script that will be executed before the converter. This script should define a ``preprocess`` function which accepts a graphsurgeon DynamicGraph and modifies it in place.
+        write_preprocessed (bool): If set to True, the converter will write out the preprocessed graph as well as a TensorBoard visualization. Must be used in conjunction with output_filename.
+        text (bool): If set to True, the converter will also write out a human readable UFF file. Must be used in conjunction with output_filename.
+        quiet (bool): If set to True, suppresses informational messages. Errors may still be printed.
+        list_nodes (bool): If set to True, the converter displays a list of all nodes present in the graph.
+        debug_mode (bool): If set to True, the converter prints verbose debug messages.
+        return_graph_info (bool): If set to True, this function returns the graph input and output nodes in addition to the serialized UFF graph.
+
+    Returns:
+        serialized UFF MetaGraph (str)
+
+        OR, if return_graph_info is set to True,
+
+        serialized UFF MetaGraph (str), graph inputs (list(tensorflow.NodeDef)), graph outputs (list(tensorflow.NodeDef))
+    """
     graphdef = GraphDef()
-    with gfile.FastGFile(frozen_file, "rb") as frozen_pb:
+    with tf.io.gfile.GFile(frozen_file, "rb") as frozen_pb:
         graphdef.ParseFromString(frozen_pb.read())
     return from_tensorflow(graphdef, output_nodes, preprocessor, **kwargs)

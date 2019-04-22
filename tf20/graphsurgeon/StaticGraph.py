@@ -99,9 +99,11 @@ class StaticGraph(object):
                     graph_outputs.append(node)
             return graph_outputs
 
-        # Find the likely inputs of the graph i.e. any placeholder nodes.
+        # Find the likely inputs of the graph i.e. any placeholder/queue nodes.
+        # We cannot just search for nodes without inputs because that would include
+        # const nodes, read operations etc.
         def _infer_graph_inputs():
-            return self.find_nodes_by_op("Placeholder")
+            return self.find_nodes_by_op(["Placeholder", "FIFOQueueV2", "FIFOQueue"])
 
         self.node_outputs = _map_node_outputs()
         self.node_map = _map_nodes()
@@ -120,7 +122,7 @@ class StaticGraph(object):
         Returns:
             None
         '''
-        with gfile.FastGFile(filename, "rb") as frozen_pb:
+        with tf.io.gfile.GFile(filename, "rb") as frozen_pb:
             self._internal_graphdef.ParseFromString(frozen_pb.read())
         self._initialize_analysis_data()
 
@@ -255,6 +257,18 @@ class StaticGraph(object):
                 matching_chains.append(matching_chain)
         return matching_chains
 
+    def find_node_inputs(self, node):
+        '''
+        Finds input nodes of a given node.
+
+        Args:
+            node (tensorflow.NodeDef): The node in which to perform the search.
+
+        Returns:
+            list(tensorflow.NodeDef)
+        '''
+        return [self.node_map[input_name] for input_name in node.input]
+
     def find_node_inputs_by_name(self, node, name):
         '''
         Finds input nodes of a given node based on their names.
@@ -274,3 +288,17 @@ class StaticGraph(object):
 
         names = _generate_iterable_for_search(name)
         return [self.node_map[input_name] for input_name in node.input if has_name(input_name, names)]
+
+    def find_node_inputs_by_op(self, node, op):
+        '''
+        Finds input nodes of a given node based on their ops.
+
+        Args:
+            node (tensorflow.NodeDef): The node in which to perform the search.
+            op (str OR list(str)): The op to look for. Also accepts iterable containers (preferably a list) to search for multiple op in a single pass.
+
+        Returns:
+            list(tensorflow.NodeDef)
+        '''
+        ops = _generate_iterable_for_search(op)
+        return [self.node_map[input_name] for input_name in node.input if self.node_map[input_name].op in ops]

@@ -92,25 +92,15 @@ class TensorFlowToUFFConverter(ConverterBase):
         while len(nodes_to_convert):
             nodes_to_convert += cls.convert_tf2uff_node(nodes_to_convert.pop(), tf_nodes,
                                                         uff_graph, input_replacements, debug_mode=debug_mode)
+        if debug_mode:
+            _debug_print("Marking {:} as outputs".format(output_nodes))
         for output in output_nodes:
             uff_graph.mark_output(output)
         return uff_graph
 
     @classmethod
     def convert_tf2numpy_dtype(cls, dtype):
-        try:
-            return dtype.as_numpy_dtype
-        except:
-            dt = ['invalid', 'f4', 'f8', 'i4', 'u1', 'i2', 'i1', 'S',
-                  'c8', 'i8', 'b', 'qi1', 'qu1', 'qi4', 'bf2',
-                  'qi2', 'qu2', 'u2', 'c16', 'f2', 'V']
-
-            if len(str(dtype)) > 1:
-                if "INT32" in str(dtype):
-                    dtype = 3
-                if "FLOAT" in str(dtype):
-                    dtype = 1
-            return np.dtype(dt[dtype])
+        return tf.as_dtype(dtype).as_numpy_dtype
 
     @classmethod
     def get_tf_int_list(cls, a):
@@ -216,6 +206,8 @@ class TensorFlowToUFFConverter(ConverterBase):
                 raise ValueError(
                     "Unsupported: shape attribute with unknown rank")
             return uff.model.List('i', [dim.size for dim in shp])
+        elif code == 'func':
+            return dict(val.ListFields())
         else:
             print(val)
             raise TypeError("Unsupported field type:" + code)

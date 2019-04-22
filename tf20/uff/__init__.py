@@ -13,4 +13,4 @@ from uff.converters.tensorflow.conversion_helpers import from_tensorflow_frozen_
     :copyright: (c) 2017 NVIDIA Corporation
 '''
 
-__version__ = '0.5.5'
+__version__ = '0.6.3'

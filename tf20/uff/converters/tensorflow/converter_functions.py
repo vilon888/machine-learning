@@ -13,6 +13,8 @@ from uff.converters.tensorflow.converter import TensorFlowToUFFConverter as tf2u
 from uff.model.utils import convert_to_str
 from uff.model.exceptions import *
 
+import numpy as np
+
 
 @tf2uff.register(["Placeholder"])
 def convert_placeholder(name, tf_node, inputs, uff_graph, **kwargs):
@@ -21,6 +23,10 @@ def convert_placeholder(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.input(shape, dtype, name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
+@tf2uff.register(["Identity"])
+def convert_placeholder(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.identity(inputs[0], name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
 @tf2uff.register(["Const"])
 def convert_const(name, tf_node, inputs, uff_graph, **kwargs):
@@ -29,12 +35,10 @@ def convert_const(name, tf_node, inputs, uff_graph, **kwargs):
     uff_node.array = array
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
-
 @tf2uff.register(["Add"])
 def convert_add(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.binary(inputs[0], inputs[1], 'add', name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
-
 
 @tf2uff.register(["Sub"])
 def convert_sub(name, tf_node, inputs, uff_graph, **kwargs):
@@ -73,8 +77,28 @@ def convert_sigmoid(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.activation(inputs[0], 'sigmoid', name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
+@tf2uff.register(["Elu"])
+def convert_elu(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.activation(inputs[0], 'elu', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
-@tf2uff.register(["Negative"])
+@tf2uff.register(["Selu"])
+def convert_selu(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.activation(inputs[0], 'selu', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+@tf2uff.register(["Softsign"])
+def convert_softsign(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.activation(inputs[0], 'softsign', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+@tf2uff.register(["Softplus"])
+def convert_softplus(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.activation(inputs[0], 'softplus', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Negative", "Neg"])
 def convert_negative(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.unary(inputs[0], 'neg', name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
@@ -83,6 +107,83 @@ def convert_negative(name, tf_node, inputs, uff_graph, **kwargs):
 @tf2uff.register(["Abs"])
 def convert_abs(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.unary(inputs[0], 'abs', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+@tf2uff.register(["Sin"])
+def convert_sin(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'sin', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Cos"])
+def convert_cos(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'cos', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Tan"])
+def convert_tan(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'tan', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Sinh"])
+def convert_sinh(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'sinh', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Cosh"])
+def convert_cosh(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'cosh', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Asin"])
+def convert_asin(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'asin', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Acos"])
+def convert_acos(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'acos', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Atan"])
+def convert_atan(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'atan', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Asinh"])
+def convert_asinh(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'asinh', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Acosh"])
+def convert_acosh(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'acosh', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Atanh"])
+def convert_atanh(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'atanh', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Ceil"])
+def convert_ceil(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'ceil', name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+
+@tf2uff.register(["Floor"])
+def convert_floor(name, tf_node, inputs, uff_graph, **kwargs):
+    uff_graph.unary(inputs[0], 'floor', name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
 
@@ -153,6 +254,41 @@ def convert_shape(name, tf_node, inputs, uff_graph, **kwargs):
     uff_graph.shape(inputs[0], name)
     return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
+@tf2uff.register(["ExpandDims"])
+def convert_expand_dims(name, tf_node, inputs, uff_graph, **kwargs):
+    # Retrieve and remove the axis node.
+    tf_axis_node = kwargs["tf_nodes"][inputs[-1]]
+    if tf_axis_node.op != "Const":
+        raise UffException("ExpandDims Axis node has op " + str(tf_axis_node.op) + ", expected Const. The axis must be specified as a Const node.")
+    axis = int(tf2uff.convert_tf2numpy_const_node(tf_axis_node))
+    inputs.pop(-1)
+    # Add the op.
+    uff_graph.expand_dims(inputs[0], axis, name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+@tf2uff.register(["ArgMax"])
+def convert_argmax(name, tf_node, inputs, uff_graph, **kwargs):
+    # Retrieve and remove the axis node.
+    tf_axis_input_node = kwargs["tf_nodes"][inputs[-1]]
+    if tf_axis_input_node.op != "Const":
+        raise UffException("ArgMax Axis node has op " + str(tf_axis_input_node.op) + ", expected Const. The axis must be specified as a Const node.")
+    axis = int(tf2uff.convert_tf2numpy_const_node(tf_axis_input_node))
+    inputs.pop(-1)
+    # Add the op.
+    uff_graph.argmax(inputs[0], axis, name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
+
+@tf2uff.register(["ArgMin"])
+def convert_argmin(name, tf_node, inputs, uff_graph, **kwargs):
+    # Retrieve and remove the axis node.
+    tf_axis_input_node = kwargs["tf_nodes"][inputs[-1]]
+    if tf_axis_input_node.op != "Const":
+        raise UffException("ArgMin Axis node has op " + str(tf_axis_input_node.op) + ", expected Const. The axis must be specified as a Const node.")
+    axis = int(tf2uff.convert_tf2numpy_const_node(tf_axis_input_node))
+    inputs.pop(-1)
+    # Add the op.
+    uff_graph.argmin(inputs[0], axis, name)
+    return [tf2uff.split_node_name_and_output(inp)[0] for inp in inputs]
 
 @tf2uff.register(["Reshape"])
 def convert_reshape(name, tf_node, inputs, uff_graph, **kwargs):
@@ -310,16 +446,50 @@ def _conv2d_helper(name, tf_node, inputs, uff_graph, **kwargs):
         number_groups = None
     # If this node represents a dilated conv, pull in the dilations.
     dilation = None
+    if "dilations" in tf_node.attr:
+        if fmt == "NCHW":
+            dilation = tf2uff.get_tf_int_list(tf_node.attr['dilations'])[2:]
+        else:
+            dilation = tf2uff.get_tf_int_list(tf_node.attr['dilations'])[1:3]
+
     # FIXME: Need a better way to check for dilated convs. This just checks if the block_shape input is as expected.
+    # Ideally we should have a 'get_input_by_name' function. Maybe we can leverage GS here.
+    # Another possibility is that GS can add these as attributes to the node rather than maintaining them as
+    # separate const nodes.
     tf_block_shape_node = kwargs["tf_nodes"][inputs[1]]
     if "block_shape" in tf_block_shape_node.name.split('/')[-1] and tf_block_shape_node.op == "Const":
-        # Get the second input (block_shape)
-        import numpy as np
-        # block_shape is of the form [1, dilation_value, dilation_value]
+        # Get the second input (block_shape) - of the form [1, dilation_value, dilation_value]
         dilation = np.frombuffer(tf_block_shape_node.attr["value"].tensor.tensor_content, dtype=np.int32).tolist()
         if len(dilation) > 2:
             dilation = [dilation[1], dilation[2]]
         inputs.pop(1)
+
+    tf_paddings_node = kwargs["tf_nodes"][inputs[1]]
+    if "paddings" in tf_paddings_node.name.split('/')[-1] and tf_paddings_node.op == "Const":
+        # Get the second input (paddings, since block_shape is already removed)
+        paddings_temp = np.frombuffer(tf_paddings_node.attr["value"].tensor.tensor_content, dtype=np.int32).tolist()
+        inputs.pop(1)
+
+        # Get cropping information, but only if paddings is also present.
+        tf_crops_node = kwargs["tf_nodes"][inputs[1]]
+        if "crops" in tf_crops_node.name.split('/')[-1] and tf_crops_node.op == "Const":
+            # Get the second input (crops, since block_shape is already removed)
+            crops = np.frombuffer(tf_crops_node.attr["value"].tensor.tensor_content, dtype=np.int32)
+            inputs.pop(1)
+            paddings_temp = (np.array(paddings_temp) - crops).tolist()
+
+        # TF paddings are [[top,bottom], [left,right]], so we need to rearrange.
+        perm = [0, 2, 1, 3]
+        # HACK: Sometimes paddings has [0, 0] at the front.
+        if len(paddings_temp) == 6:
+            paddings_temp = paddings_temp[2:]
+        paddings_temp = [paddings_temp[p] for p in perm]
+        # Symmetric padding ("same")
+        if paddings_temp[0] == paddings_temp[2] and paddings_temp[1] == paddings_temp[3]:
+            paddings_temp = paddings_temp[0:2]
+            padding = paddings_temp if not padding else [p + pt for p, pt in zip(padding, paddings_temp)]
+        else:
+            print("Asymmetric padding for dilated convolutions is currently unsupported in the UFF converter.")
 
     uff_graph.conv(
         inputs[0], inputs[-1], strides, padding,
