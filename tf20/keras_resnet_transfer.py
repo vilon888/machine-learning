@@ -2,7 +2,10 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets.public_api as tfds
 import os
+from PIL import Image
 
+import onnxmltools
+from MyDataset import MyDataset
 
 def get_open_shelf_dataset():
     dl_config = tfds.download.DownloadConfig(
@@ -11,7 +14,7 @@ def get_open_shelf_dataset():
     )
 
     train_ds, test_ds, val_ds = tfds.load(
-        name='image_label_folder',
+        name='my_dataset',
         data_dir='/home/vilon_tao/tensorflow_datasets',
         split=["train", "test", "val"],
         download=True,
@@ -20,6 +23,20 @@ def get_open_shelf_dataset():
     )
 
     return train_ds, test_ds, val_ds
+
+
+def am_softmax_loss(label, prediction, m=0.35, s=30):
+
+    cos_theta = tf.clip_by_value(prediction,-1,1)
+    phi = cos_theta - m
+
+    label1 = tf.cast(tf.keras.backend.flatten(label), 'int64')
+
+    label_onehot = tf.one_hot(label1,7)
+
+    adjust_theta = s * tf.where(tf.equal(label_onehot,1),phi,cos_theta)
+    loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+    return loss(label_onehot,adjust_theta)
 
 
 class Embeddings(tf.keras.layers.Layer):
@@ -88,44 +105,109 @@ def get_open_shelf_resnet(input_shape=[96, 96, 3], class_num=7, embedding_size=5
 
 
 def resize(item):
-  item['image'] = tf.image.resize(item['image'], (96, 96))
-  return item
+    H = tf.cast(item['height'], dtype=tf.float32)
+    W = tf.cast(item['width'], dtype=tf.float32)
+    scale = tf.random.uniform([], minval=0.8, maxval=1, dtype=tf.float32)
+
+    new_H = tf.cast(H * scale, dtype=tf.int32)
+    new_W = tf.cast(W * scale, dtype=tf.int32)
+    item['image'] = tf.image.random_crop(item['image'], size=(new_H, new_W, 3))
+
+    item['image'] = tf.image.resize(item['image'], (96, 96))
+    item['image'] = tf.cast(item['image'] / 255, dtype=tf.float32)
+    return item
+
+
+def resize_val_test(item):
+    item['image'] = tf.image.resize(item['image'], (96, 96))
+    item['image'] = tf.cast(item['image'] / 255, dtype=tf.float32)
+    return item
+
 
 def get_tuple(item):
     return item['image'], item['label']
 
+
 def get_imgs(item):
     return item['image']
 
-model = get_open_shelf_resnet()
+def test_model():
+    # new_model = tf.keras.experimental.load_from_saved_model('models/open_shelf_resnet_model')
+    new_model = tf.keras.models.load_model('models/open_shelf_resnet_model_05.h5',
+                                           custom_objects={'Classification': Classification,
+                                                           'Embeddings': Embeddings,
+                                                           'am_softmax_loss': am_softmax_loss}
+                                           )
 
-model.summary()
+    sum = 0
+    correct = 0
+    wrong = 0
+    for images, labels in test_ds_model:
+        results = new_model.predict(images)
+        sum += 1
+        if np.argmax(results[1]) ==labels.numpy():
+            correct += 1
+        else:
+            wrong +=1
 
+    print('correct ratio: {}\n wrong ratio: {}'.format(correct/sum, wrong/sum))
+
+
+def train_save_model():
+    model = get_open_shelf_resnet()
+
+    model.summary()
+
+    filepath = os.path.join('./models', model.name + "_{epoch:02d}.h5")
+
+    callbacks = [
+        tf.keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=1, embeddings_freq=1, update_freq='batch'),
+        tf.keras.callbacks.ModelCheckpoint(filepath)
+        ]
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-4, decay=1e-4),
+                  loss=[None, am_softmax_loss],
+                  # metrics=['accuracy'],
+                  # metrics=[tf.keras.metrics.SparseCategoricalCrossentropy(from_logits=True)],
+                  metrics=[tf.keras.metrics.SparseCategoricalAccuracy()]
+
+                  )
+
+    model.fit(train_ds, epochs=5, validation_data=val_ds, callbacks=callbacks)
+
+    eval_results = model.evaluate(test_ds_eval)
+
+    print(eval_results)
+
+    results = model.predict(test_ds_predict)
+
+    print(results)
+
+    model.save(os.path.join('./models', model.name + '.h5'))
+
+    tf.keras.experimental.export_saved_model(model, os.path.join('./models/' + model.name))
+
+    tf.keras.utils.plot_model(model, os.path.join('./models', model.name + '.png'), show_shapes=True)
+
+
+# onnx_model = onnxmltools.convert_keras(model)
 
 train_ds, test_ds, val_ds = get_open_shelf_dataset()
 
-filepath =os.path.join('./models', model.name + "_{epoch:02d}.h5")
+# for i in train_ds:
+#     sinogram = tf.image.encode_jpeg(i['image'], quality=100)
+#     writer = tf.io.write_file('test_sinogram.jpg', sinogram)
+#     print('saved image')
 
-callbacks = [tf.keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, embeddings_freq=0, update_freq='batch'),
-             tf.keras.callbacks.ModelCheckpoint(filepath)
-             ]
 
-model.compile(optimizer=tf.keras.optimizers.Adam(),
-              loss=[None, tf.keras.losses.SparseCategoricalCrossentropy()],
-              metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
-              )
 
-train_ds = train_ds.map(resize).shuffle(100).batch(20).map(get_tuple)
-val_ds = val_ds.map(resize).batch(20).map(get_tuple)
-test_ds = test_ds.map(resize).batch(20).map(get_imgs)
+train_ds = train_ds.map(resize).shuffle(1000).batch(64).map(get_tuple)
+val_ds = val_ds.map(resize_val_test).batch(64).map(get_tuple)
+test_ds_eval = test_ds.map(resize_val_test).batch(64).map(get_tuple)
+test_ds_predict = test_ds.map(resize_val_test).batch(64).map(get_imgs)
 
-# model.fit(train_ds, epochs=60, validation_data=val_ds, callbacks=callbacks)
+test_ds_model = test_ds.map(resize_val_test).batch(1).map(get_tuple)
 
-# results = model.predict(test_ds)
 
-# print(results)
-
-model.save(os.path.join('./models', model.name + '.h5'))
-tf.keras.experimental.export_saved_model(model, os.path.join('./models/' + model.name))
-
-tf.keras.utils.plot_model(model, os.path.join('./models', model.name + '.png'), show_shapes=True)
+if __name__ == '__main__':
+    test_model()
