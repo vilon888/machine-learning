@@ -12,7 +12,7 @@ import tensorflow_datasets.public_api as tfds
 # physical_devices = config.experimental.list_physical_devices('GPU')
 # for gpu in physical_devices:
 #     config.experimental.set_memory_growth(device=gpu, enable=True)
-
+# allow growth memory
 from tensorflow.python.framework import config
 config.set_gpu_per_process_memory_growth(True)
 
@@ -142,66 +142,32 @@ def resize_val_test(item):
     item['image'] = tf.cast(item['image'] / 255, dtype=tf.float32)
     return item['image'], item['label']
 
+def test_model():
+    mirrored_strategy = tf.distribute.MirroredStrategy()
+    # new_model = tf.keras.experimental.load_from_saved_model('models/open_shelf_resnet_model')
+    # with mirrored_strategy.scope():
+    new_model = tf.keras.models.load_model('models/open_shelf_resnet_model.h5',
+                                           custom_objects={'Classification': Classification,
+                                                           'Embeddings': Embeddings,
+                                                           'am_softmax_loss': am_softmax_loss}
+                                           )
+    sum = 0
+    correct = 0
+    for images, labels in test_ds_model:
+        results = new_model.predict(images)
+        sum += results.shape[0]
+        results = np.argmax(results, axis=-1) == labels.numpy()
+        correct += np.sum(results)
 
-def get_tuple(item):
-    return item['image'], item['label']  # (item['label'], item['label'])
-
-
-def get_imgs(item):
-    return item['image']
-
-#
-# def test_model():
-#     # new_model = tf.keras.experimental.load_from_saved_model('models/open_shelf_resnet_model')
-#     new_model = tf.keras.models.load_model('models/open_shelf_resnet_model_05.h5',
-#                                            custom_objects={'Classification': Classification,
-#                                                            'Embeddings': Embeddings,
-#                                                            'am_softmax_loss': am_softmax_loss}
-#                                            )
-#
-#     sum = 0
-#     correct = 0
-#     wrong = 0
-#     for images, labels in test_ds_model:
-#         results = new_model.predict(images)
-#         sum += 1
-#         if np.argmax(results[1]) ==labels.numpy():
-#             correct += 1
-#         else:
-#             wrong +=1
-#
-#     print('correct ratio: {}\n wrong ratio: {}'.format(correct/sum, wrong/sum))
+    print('correct ratio: {}\n wrong ratio: {}'.format(correct/sum, 1 - correct/sum))
 
 
 def train_save_model():
     mirrored_strategy = tf.distribute.MirroredStrategy()
 
-    # model = tf.keras.models.load_model('models/open_shelf_resnet_model.h5',
-    #                                    custom_objects={'Classification': Classification,
-    #                                                    'Embeddings': Embeddings,
-    #                                                    'am_softmax_loss': am_softmax_loss})
-    # embedding = tf.keras.Model(inputs=model.input,
-    #                            outputs=model.get_layer('embeddings').output,
-    #                            name='open_shelf_resnet_embedding_model')
-
-    BUFFER_SIZE = 10000
-
-    BATCH_SIZE_PER_REPLICA = 64
-    BATCH_SIZE = BATCH_SIZE_PER_REPLICA * mirrored_strategy.num_replicas_in_sync
-
-    train_ds, test_ds, val_ds = get_open_shelf_dataset()
-
     # for i in train_ds:
     #     image, label = i
     #     print(i)
-
-    train_ds = train_ds.map(resize).shuffle(BUFFER_SIZE).batch(BATCH_SIZE, drop_remainder=True)
-    val_ds = val_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
-    test_ds_eval = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
-    test_ds_predict = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
-
-    test_ds_model = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
-
     with mirrored_strategy.scope():
         model = get_open_shelf_resnet()
         filepath = os.path.join('./models', model.name + "_{epoch:02d}.h5")
@@ -220,7 +186,12 @@ def train_save_model():
                       metrics=['sparse_categorical_accuracy']
 
                       )
-    model.fit(train_ds, epochs=5,  callbacks=callbacks)
+    # model.fit(train_ds, epochs=5,  callbacks=callbacks)
+    model.fit(train_ds, epochs=20,  callbacks=callbacks,
+              validation_data=val_ds, steps_per_epoch=144,
+              validation_steps=14)
+    # model.fit(train_ds, epochs=30,  callbacks=callbacks, validation_data=val_ds, verbose=0)
+    # model.fit(train_ds, epochs=5, validation_data=val_ds, callbacks=callbacks, validation_steps=200)
 
     eval_results = model.evaluate(test_ds_eval)
 
@@ -238,6 +209,15 @@ def train_save_model():
     tf.keras.utils.plot_model(model, os.path.join('./models', model.name + '.png'), show_shapes=True)
 
 
+def get_embedding():
+    model = tf.keras.models.load_model('models/open_shelf_resnet_model.h5',
+                                       custom_objects={'Classification': Classification,
+                                                       'Embeddings': Embeddings,
+                                                       'am_softmax_loss': am_softmax_loss})
+    embedding = tf.keras.Model(inputs=model.input,
+                               outputs=model.get_layer('embeddings').output,
+                               name='open_shelf_resnet_embedding_model')
+
 # onnx_model = onnxmltools.convert_keras(model)
 
 
@@ -246,15 +226,19 @@ def train_save_model():
 #     writer = tf.io.write_file('test_sinogram.jpg', sinogram)
 #     print('saved image')
 
-
-# train_ds = train_ds.map(resize).shuffle(1000).batch(64)
-# val_ds = val_ds.map(resize_val_test).batch(64)
-# test_ds_eval = test_ds.map(resize_val_test).batch(64)
-# test_ds_predict = test_ds.map(resize_val_test).batch(64)
-#
-# test_ds_model = test_ds.map(resize_val_test).batch(1)
-
-
 if __name__ == '__main__':
-    train_save_model()
-    # test_model()
+    BUFFER_SIZE = 10000
+
+    NUM_GPUS = 3
+    BATCH_SIZE_PER_REPLICA = 64
+    BATCH_SIZE = BATCH_SIZE_PER_REPLICA * NUM_GPUS
+
+    train_ds, test_ds, val_ds = get_open_shelf_dataset()
+    train_ds = train_ds.map(resize).shuffle(BUFFER_SIZE).batch(BATCH_SIZE, drop_remainder=True).repeat(-1)
+    val_ds = val_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
+    test_ds_eval = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
+    test_ds_predict = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
+
+    test_ds_model = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
+    # train_save_model()
+    test_model()
