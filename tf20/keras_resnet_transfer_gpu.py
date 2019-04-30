@@ -234,7 +234,7 @@ if __name__ == '__main__':
     BATCH_SIZE = BATCH_SIZE_PER_REPLICA * NUM_GPUS
 
     train_ds, test_ds, val_ds = get_open_shelf_dataset()
-    train_ds = train_ds.map(resize).shuffle(BUFFER_SIZE).batch(BATCH_SIZE, drop_remainder=True).repeat(-1)
+    train_ds = train_ds.map(resize).shuffle(BUFFER_SIZE).repeat(-1).batch(BATCH_SIZE, drop_remainder=True)
     val_ds = val_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
     test_ds_eval = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
     test_ds_predict = test_ds.map(resize_val_test).batch(BATCH_SIZE, drop_remainder=True)
