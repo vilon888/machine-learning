@@ -210,4 +210,5 @@ test_ds_model = test_ds.map(resize_val_test).batch(1).map(get_tuple)
 
 
 if __name__ == '__main__':
-    test_model()
+    #test_model()
+    train_save_model()

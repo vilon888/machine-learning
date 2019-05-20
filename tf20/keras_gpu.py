@@ -5,7 +5,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 import tensorflow_datasets as tfds
 import tensorflow as tf
-
+import tensorflow.python.keras.backend as K
+K.function
 # from tensorflow import config
 #
 # physical_devices = config.experimental.list_physical_devices('GPU')

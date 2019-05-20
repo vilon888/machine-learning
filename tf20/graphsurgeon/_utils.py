@@ -45,4 +45,4 @@ def _handle_single_nodes(nodes):
 
 # Cleans up the input name. Nodes with multiple outputs are suffixed with a :index_number, so we need to strip this.
 def _clean_input_name(input_name):
-    return input_name.split(":")[0]
+    return input_name.split(":")[0].replace('^', '')
