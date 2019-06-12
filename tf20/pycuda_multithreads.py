@@ -3,6 +3,7 @@
 
 
 import pycuda
+import pycuda.autoinit
 import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
 import threading
